@@ -50,6 +50,7 @@ pipeline {
             }
         }
 
+ 
         stage('Deploy to AWS') {
             agent {
                 docker {
@@ -58,14 +59,38 @@ pipeline {
                     args "-u root --entrypoint=''"
                 }
             }
+
             steps {
-                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'my-aws',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID'
+                    )
+                ]) {
                     sh '''
+                        set -eu
+
                         aws --version
-                        yum install jq -y
-                        LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
-                        aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition $AWS_ECS_TD_PROD:$LATEST_TD_REVISION
-                        aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_PROD
+
+                        yum install -y jq
+
+                        TASK_DEFINITION_ARN=$(
+                            aws ecs register-task-definition \
+                                --cli-input-json file://aws/task-definition-prod.json \
+                            | jq -er '.taskDefinition.taskDefinitionArn'
+                        )
+
+                        echo "Registered: $TASK_DEFINITION_ARN"
+
+                        aws ecs update-service \
+                            --cluster "$AWS_ECS_CLUSTER" \
+                            --service "$AWS_ECS_SERVICE_PROD" \
+                            --task-definition "$TASK_DEFINITION_ARN"
+
+                        aws ecs wait services-stable \
+                            --cluster "$AWS_ECS_CLUSTER" \
+                            --services "$AWS_ECS_SERVICE_PROD"
                     '''
                 }
             }

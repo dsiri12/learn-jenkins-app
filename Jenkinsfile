@@ -75,18 +75,18 @@ pipeline {
 
                         yum install -y jq
 
-                        TASK_DEFINITION_ARN=$(
+                        LATEST_TD_REVISION=$(
                             aws ecs register-task-definition \
                                 --cli-input-json file://aws/task-definition-prod.json \
-                            | jq -er '.taskDefinition.taskDefinitionArn'
+                            | jq -er '.taskDefinition.revision'
                         )
 
-                        echo "Registered: $TASK_DEFINITION_ARN"
+                        echo "LATEST_TD_REVISION: $LATEST_TD_REVISION"
 
                         aws ecs update-service \
                             --cluster "$AWS_ECS_CLUSTER" \
                             --service "$AWS_ECS_SERVICE_PROD" \
-                            --task-definition "$TASK_DEFINITION_ARN"
+                            --task-definition "$AWS_ECS_TD_PROD:$LATEST_TD_REVISION"
 
                         aws ecs wait services-stable \
                             --cluster "$AWS_ECS_CLUSTER" \

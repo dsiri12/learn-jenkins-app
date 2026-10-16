@@ -51,6 +51,12 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                        set -eu
+
+                        # Install AWS CLI in the Docker CLI container
+                        apk add --no-cache aws-cli
+
+                        aws --version
                         docker --version
                         docker info
                         docker build -t $AWS_DOCKER_REGISTRY/$APP_NAME:${BUILD_ID} .

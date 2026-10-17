@@ -93,6 +93,8 @@ pipeline {
 
                         yum install -y jq
 
+                        sed -i "s/#APP_VERSION#/$REACT_APP_VERSION/g" aws/task-definition-prod.json
+
                         LATEST_TD_REVISION=$(
                             aws ecs register-task-definition \
                                 --cli-input-json file://aws/task-definition-prod.json \
